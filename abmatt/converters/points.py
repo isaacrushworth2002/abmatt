@@ -142,7 +142,7 @@ class PointCollection:
             mdl0_points.stride = point_width
         elif form == 'f':
             mdl0_points.format = 4
-            dtype = np.float
+            dtype = float
             mdl0_points.stride = point_width * 4
         else:
             raise error.ConvertError('Unknown format {}'.format(form))
