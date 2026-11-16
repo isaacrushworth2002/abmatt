@@ -11,11 +11,11 @@ from abmatt.converters.points import PointCollection
 
 
 def decode_geometry_group(geometry, n_columns, flip_points=False):
-    arr = np.array(geometry.data, np.float)
+    arr = np.array(geometry.data, float)
     if geometry.divisor:
         arr = arr / (2 ** geometry.divisor)
     if arr.shape[1] < n_columns:
-        arr = np.append(arr, np.zeros((arr.shape[0], 1), np.float), axis=1)
+        arr = np.append(arr, np.zeros((arr.shape[0], 1), float), axis=1)
     if flip_points:
         arr[:, -1] = arr[:, -1] * -1 + 1    # convert st to xy
     return arr
