@@ -223,12 +223,12 @@ class _AutoFix:
     def prompt(description: str, proposed_fix: str | None = None) -> int:
         while True:
             fix = ',' + proposed_fix if proposed_fix else ''
-            result = input('Fix: ' + description + fix + '? (y/n)').lower()
-            if result[0] == 'y':
+            result = input('Fix: ' + description + fix + '? (y/n)').lower()[:1]
+            if result == 'y':
                 return 1
-            elif result[0] == 'n':
+            elif result == 'n':
                 return 0
-            elif result[0] == 'a':  # abort option
+            elif result == 'a':  # abort option
                 raise AutoFixAbort()
             else:
                 print('Invalid response, expects yes, no, or abort.')

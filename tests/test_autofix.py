@@ -37,3 +37,9 @@ def test_get_after_quit(monkeypatch):
     fixer = AutoFix.get()
     assert isinstance(fixer, _AutoFix)
     assert AutoFix.get() is fixer
+
+
+def test_prompt_asks_again_on_empty_input(monkeypatch):
+    answers = iter(['', 'n'])
+    monkeypatch.setattr('builtins.input', lambda text: next(answers))
+    assert AutoFix.prompt('bad thing') == 0
