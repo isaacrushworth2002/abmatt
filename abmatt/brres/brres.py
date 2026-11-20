@@ -2,8 +2,12 @@
 # --------------------------------------------------------
 #   Brres Class
 # --------------------------------------------------------
+from __future__ import annotations
+
 import os
 import string
+from collections.abc import Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any
 
 from abmatt.autofix import AutoFix, Bug
 from abmatt.brres.lib.binfile import BinFile
@@ -15,17 +19,20 @@ from abmatt.brres.mdl0.material.material import Material
 from abmatt.brres.tex0 import Tex0
 from abmatt.image_converter import ImgConverter
 
+if TYPE_CHECKING:
+    from abmatt.brres.mdl0.mdl0 import Mdl0
+
 
 class Brres(Clipable, Packable):
     SETTINGS = ('name',)
     MAGIC = 'bres'
     OVERWRITE = False
-    DESTINATION = None
-    OPEN_FILES = []  # reference to active files
+    DESTINATION: str | None = None
+    OPEN_FILES: list[Brres] = []  # reference to active files
     REMOVE_UNUSED_TEXTURES = False
     MOONVIEW = False    # if true, treat brres as moonview
 
-    def __init__(self, name, parent=None, read_file=True):
+    def __init__(self, name: str, parent: Any = None, read_file: bool = True) -> None:
         """
             initialize brres
             name - the brres name, or filename
@@ -36,40 +43,40 @@ class Brres(Clipable, Packable):
         name = os.path.abspath(name)
         self.is_modified = False
         self.has_new_model = False
-        self.models = []
-        self.texture_map = {}
-        self.textures = []
-        self.unused_srt0 = None
-        self.unused_pat0 = None
-        self.chr0 = []
-        self.scn0 = []
-        self.shp0 = []
-        self.clr0 = []
-        self.unknown = []
+        self.models: list[Mdl0] = []
+        self.texture_map: dict[str, Tex0] = {}
+        self.textures: list[Tex0] = []
+        self.unused_srt0: Any = None
+        self.unused_pat0: Any = None
+        self.chr0: list[Any] = []
+        self.scn0: list[Any] = []
+        self.shp0: list[Any] = []
+        self.clr0: list[Any] = []
+        self.unknown: list[Any] = []
         binfile = BinFile(name) if read_file else None
         super(Brres, self).__init__(name, parent, binfile)
         self.add_open_file(self)
         if binfile:
             self.unpack(binfile)
 
-    def get_full_path(self):
+    def get_full_path(self) -> str:
         return self.name
 
     @staticmethod
-    def add_open_file(file):
+    def add_open_file(file: Brres) -> None:
         Brres.OPEN_FILES.append(file)
         if len(Brres.OPEN_FILES) > 10:
             for i in range(5):
                 Brres.OPEN_FILES.pop(0).close()
 
     @staticmethod
-    def close_files():
+    def close_files() -> None:
         for x in Brres.OPEN_FILES:
             x.close()
         Brres.OPEN_FILES = []
 
     @staticmethod
-    def get_brres(filename, create_if_not_exists=False):
+    def get_brres(filename: str, create_if_not_exists: bool = False) -> Brres | None:
         filename = os.path.abspath(filename)
         for x in Brres.OPEN_FILES:
             if filename == x.name:
@@ -78,43 +85,44 @@ class Brres(Clipable, Packable):
             return Brres(filename, read_file=True)
         elif create_if_not_exists:
             return Brres(filename, read_file=False)
+        return None
 
-    def begin(self):
+    def begin(self) -> None:
         self.is_modified = True
 
-    def respect_model_names(self):
+    def respect_model_names(self) -> bool:
         names = {x.name.rstrip(string.digits) for x in self.models}
         return len(names) != len(self.models)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         return other is not None and type(other) == Brres and self.models == other.models \
                and self.texture_map == other.texture_map \
                and self.unused_srt0 == other.unused_srt0 and self.unused_pat0 == other.unused_pat0 \
                and self.chr0 == other.chr0 and self.scn0 == other.scn0 and self.shp0 == other.shp0 \
                and self.clr0 == other.clr0 and self.unknown == other.unknown
 
-    def get_str(self, key):
+    def get_str(self, key: str) -> str:
         if key == 'name':
             return self.name
         else:
             raise ValueError('Unknown key "{}"'.format(key))
 
-    def set_str(self, key, value):
+    def set_str(self, key: str, value: str) -> None:
         if key == 'name':
             self.rename(value)
         else:
             raise ValueError('Unknown key "{}"'.format(key))
 
-    def import_model(self, file_path):
+    def import_model(self, file_path: str) -> None:
         from abmatt.converters.convert_dae import DaeConverter
         converter = DaeConverter(self, file_path)
         converter.load_model()
         self.mark_modified()
 
-    def add_mdl0(self, mdl0):
+    def add_mdl0(self, mdl0: Mdl0) -> Mdl0:
         prev = self.get_model(mdl0.name)
         if prev:
             self.remove_mdl0(mdl0.name)
@@ -123,19 +131,19 @@ class Brres(Clipable, Packable):
         self.mark_modified()
         return mdl0
 
-    def remove_mdl0(self, name):
+    def remove_mdl0(self, name: str) -> None:
         for x in self.models:
             if x.name == name:
                 self.models.remove(x)
                 self.mark_modified()
                 break
 
-    def remove_mdl0_i(self, i):
+    def remove_mdl0_i(self, i: int) -> None:
         self.models.pop(i)
         self.mark_modified()
 
     # ---------------------------------------------- CLIPBOARD ------------------------------------------
-    def paste(self, brres):
+    def paste(self, brres: Brres) -> None:
         self.paste_group(self.models, brres.models)
         # textures
         t1 = self.get_texture_map()
@@ -147,7 +155,7 @@ class Brres(Clipable, Packable):
         self.mark_modified()
         # todo chr0 paste
 
-    def paste_material_tex0s(self, material, old_brres):
+    def paste_material_tex0s(self, material: Any, old_brres: Brres) -> int:
         pasted_count = 0
         if old_brres is not self:
             old_map = old_brres.texture_map
@@ -161,15 +169,16 @@ class Brres(Clipable, Packable):
         return pasted_count
 
     # -------------------------- SAVE/ CLOSE --------------------------------------------
-    def close(self, try_save=True):
+    def close(self, try_save: bool = True) -> bool | None:
         try:
             Brres.OPEN_FILES.remove(self)
         except ValueError:
             pass
         if try_save and self.is_modified or self.DESTINATION and self.DESTINATION != self.name:
             return self.save(self.DESTINATION, self.OVERWRITE)
+        return None
 
-    def save(self, filename=None, overwrite=None, check=True):
+    def save(self, filename: str | None = None, overwrite: bool | None = None, check: bool = True) -> bool:
         if not filename:
             filename = self.name
         if overwrite is None:
@@ -189,12 +198,12 @@ class Brres(Clipable, Packable):
                 return True
         return False
 
-    def get_trace(self):
+    def get_trace(self) -> str:
         if self.parent:
-            return self.parent.name + "->" + self.name
+            return str(self.parent.name) + "->" + self.name
         return self.name
 
-    def info(self, key=None, indentation_level=0):
+    def info(self, key: str | None = None, indentation_level: int = 0) -> None:
         AutoFix.info('{}{}:\t{} model(s)\t{} texture(s)'.format('  ' * indentation_level + '>',
                                                                 self.name, len(self.models), len(self.textures)), 1)
         indentation_level += 2
@@ -208,7 +217,7 @@ class Brres(Clipable, Packable):
         self.sub_info('CLR0', self.clr0, key, indentation_level)
 
     @staticmethod
-    def sub_info(folder_name, folder, key, indentation_level):
+    def sub_info(folder_name: str, folder: Sequence[Any], key: str | None, indentation_level: int) -> None:
         folder_len = len(folder)
         if folder_len:
             print('{}>{}\t{}'.format('  ' * (indentation_level - 1), folder_name, folder_len))
@@ -217,19 +226,21 @@ class Brres(Clipable, Packable):
 
     # ------------------------------ Models ---------------------------------
 
-    def get_model(self, name):
+    def get_model(self, name: str) -> Mdl0 | None:
         for x in self.models:
             if x.name == name:
                 return x
+        return None
 
-    def get_model_by_index(self, i=0):
+    def get_model_by_index(self, i: int = 0) -> Mdl0 | None:
         try:
             return self.models[i]
         except IndexError:
             pass
+        return None
 
     @staticmethod
-    def get_expected_brres_fname(filename):
+    def get_expected_brres_fname(filename: str) -> str:
         w_dir, name = os.path.split(filename)
         name = os.path.splitext(name)[0]
         for item in ('course', 'map', 'vrcorn'):
@@ -238,27 +249,29 @@ class Brres(Clipable, Packable):
                 break
         return os.path.join(w_dir, name + '.brres')
 
-    def get_expected_mdl_name(self):
+    def get_expected_mdl_name(self) -> str | None:
         filename = os.path.basename(self.name)
         for item in ('course', 'map', 'vrcorn'):
             if item in filename:
                 return item
+        return None
 
-    def get_animations(self):
-        return [self.srt0, self.pat0, self.chr0, self.scn0, self.shp0, self.clr0]
+    def get_animations(self) -> list[Any]:
+        # srt0 and pat0 are never assigned on Brres (only unused_srt0 and unused_pat0 are), so this raises
+        return [self.srt0, self.pat0, self.chr0, self.scn0, self.shp0, self.clr0]  # type: ignore[attr-defined]
 
-    def on_model_rename(self, old_name, new_name):
+    def on_model_rename(self, old_name: str, new_name: str) -> str:
         for n in self.get_animations():
             for x in n:
                 if old_name == x.name:
                     x.name = new_name
         return new_name
 
-    def get_models_by_name(self, name):
-        return MATCHING.findAll(name, self.models)
+    def get_models_by_name(self, name: str) -> list[Mdl0]:
+        return MATCHING.findAll(name, self.models)  # type: ignore[no-any-return]
 
     # -------------------------------- Textures -----------------------------
-    def find_texture(self, name):
+    def find_texture(self, name: str) -> Tex0 | None:
         """Attempts to find the texture by name"""
         if not self.OPEN_FILES:
             return None
@@ -267,8 +280,9 @@ class Brres(Clipable, Packable):
                 tex = x.get_texture(name, False)
                 if tex is not None:
                     return tex
+        return None
 
-    def add_tex0(self, tex0, replace=True, mark_modified=True):
+    def add_tex0(self, tex0: Tex0, replace: bool = True, mark_modified: bool = True) -> bool:
         if tex0.name in self.texture_map:
             if not replace:
                 return False
@@ -285,33 +299,34 @@ class Brres(Clipable, Packable):
             self.mark_modified()
         return True
 
-    def paste_tex0s(self, brres):
+    def paste_tex0s(self, brres: Brres) -> None:
         tex_map = brres.texture_map
         if len(tex_map):
             for x in tex_map:
                 self.add_tex0(tex_map[x], mark_modified=False)
             self.mark_modified()
 
-    def import_texture(self, image_path, name=None):
-        tex0 = ImgConverter().encode(image_path, self)
+    def import_texture(self, image_path: str, name: str | None = None) -> Tex0 | None:
+        tex0: Tex0 | None = ImgConverter().encode(image_path, self)
         if tex0:
             if name:
                 tex0.name = name
         return tex0
 
     @staticmethod
-    def import_textures(paths, tex0_format=None, num_mips=-1, check=False):
+    def import_textures(paths: Iterable[str], tex0_format: str | None = None, num_mips: int = -1,
+                        check: bool = False) -> Any:
         return ImgConverter().batch_encode(paths, tex0_format, num_mips, check)
 
-    def rename_texture(self, tex0, name):
+    def rename_texture(self, tex0: Tex0, name: str) -> None:
         if tex0.rename(name):
-            self.texture_map[tex0.name] = None
+            self.texture_map[tex0.name] = None  # type: ignore[assignment]
             self.texture_map[tex0.name] = tex0
 
-    def get_texture_map(self):
+    def get_texture_map(self) -> dict[str, Tex0]:
         return self.texture_map
 
-    def get_texture(self, name, search_other_files=True):
+    def get_texture(self, name: str, search_other_files: bool = True) -> Tex0 | None:
         tex = self.get_texture_map().get(name)
         if tex is None and search_other_files:
             tex = self.find_texture(name)
@@ -319,13 +334,13 @@ class Brres(Clipable, Packable):
                 self.add_tex0(tex)
         return tex
 
-    def has_texture(self, name):
+    def has_texture(self, name: str) -> bool:
         return True if name in self.texture_map else False
 
-    def get_textures(self, name):
-        return MATCHING.findAll(name, self.textures)
+    def get_textures(self, name: str) -> list[Tex0]:
+        return MATCHING.findAll(name, self.textures)  # type: ignore[no-any-return]
 
-    def remove_tex0(self, name):
+    def remove_tex0(self, name: str) -> None:
         try:
             tex = self.texture_map.pop(name)
             self.textures.remove(tex)
@@ -333,40 +348,40 @@ class Brres(Clipable, Packable):
         except KeyError:
             AutoFix.warn('No texture {} in {}'.format(name, self.name))
 
-    def remove_tex0_i(self, i):
+    def remove_tex0_i(self, i: int) -> None:
         tex = self.textures.pop(i)
         if tex:
             self.texture_map.pop(tex.name)
             self.mark_modified()
 
-    def get_used_textures(self):
-        ret = set()
+    def get_used_textures(self) -> set[str]:
+        ret: set[str] = set()
         for x in self.models:
             ret |= x.get_used_textures()
         return ret
 
     # --------------------- Animations ----------------------------------------------
 
-    def add_srt_collection(self, collection):
-        self.srt0.append(collection)
+    def add_srt_collection(self, collection: Any) -> Any:
+        self.srt0.append(collection)  # type: ignore[attr-defined]  # never assigned, see get_animations
         return collection
 
-    def add_pat0_collection(self, collection):
-        self.pat0.append(collection)
+    def add_pat0_collection(self, collection: Any) -> Any:
+        self.pat0.append(collection)  # type: ignore[attr-defined]  # never assigned, see get_animations
         return collection
 
     # -------------------------------------------------------------------------
     #   PACKING / UNPACKING
     # -------------------------------------------------------------------------
 
-    def unpack(self, binfile):
+    def unpack(self, binfile: BinFile) -> None:
         UnpackBrres(self, binfile)
 
-    def pack(self, binfile):
+    def pack(self, binfile: BinFile) -> None:
         PackBrres(self, binfile)
 
     # --------------------------------------------------------------------------
-    def check(self):
+    def check(self) -> None:
         AutoFix.info('checking file {}'.format(self.name), 4)
         expected = self.get_expected_mdl_name()
         if self.MOONVIEW:
@@ -388,7 +403,7 @@ class Brres(Clipable, Packable):
         for tex in all_tex:
             tex.check()
 
-    def check_moonview(self):
+    def check_moonview(self) -> bool:
         if not self.models:
             return True
         mat_names = ['Goal_Merg', 'Iwa', 'Iwa_alfa', 'Nuki_Ryoumen', 'WallMerg00',
@@ -415,13 +430,13 @@ class Brres(Clipable, Packable):
             b.resolve()
         return j != len(mat_names)
 
-    def remove_unused_textures(self, unused_textures):
+    def remove_unused_textures(self, unused_textures: Iterable[str]) -> None:
         tex = self.textures
         tex_map = self.texture_map
         for x in unused_textures:
             tex.remove(tex_map.pop(x))
 
-    def mark_unmodified(self):
+    def mark_unmodified(self) -> None:
         self.is_modified = False
         self._mark_unmodified_group(self.models)
         self._mark_unmodified_group(self.textures)

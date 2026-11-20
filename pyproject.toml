@@ -10,15 +10,11 @@ exclude = ["^abmatt/gui/", "^abmatt/build/", "^abmatt/dist/"]
 # Typed modules may call into baseline modules; this list mirrors the baseline below.
 untyped_calls_exclude = [
     "abmatt.__main__",
-    "abmatt.autofix",
-    "abmatt.brres.brres",
     "abmatt.brres.chr0",
     "abmatt.brres.clr0.clr0",
     "abmatt.brres.clr0.clr0_animation",
     "abmatt.brres.key_frame_list",
-    "abmatt.brres.lib.binfile",
     "abmatt.brres.lib.decoder",
-    "abmatt.brres.lib.node",
     "abmatt.brres.lib.packing.interface",
     "abmatt.brres.lib.packing.pack_brres",
     "abmatt.brres.lib.packing.pack_chr0",
@@ -116,22 +112,18 @@ untyped_calls_exclude = [
 ]
 
 [[tool.mypy.overrides]]
-module = ["fuzzywuzzy", "fuzzywuzzy.*", "lxml", "lxml.*"]
+module = ["colorama", "fuzzywuzzy", "fuzzywuzzy.*", "lxml", "lxml.*"]
 ignore_missing_imports = true
 
 # Modules not yet typed. Remove entries as each is typed; never add one (tests/test_typing.py).
 [[tool.mypy.overrides]]
 module = [
     "abmatt.__main__",
-    "abmatt.autofix",
-    "abmatt.brres.brres",
     "abmatt.brres.chr0",
     "abmatt.brres.clr0.clr0",
     "abmatt.brres.clr0.clr0_animation",
     "abmatt.brres.key_frame_list",
-    "abmatt.brres.lib.binfile",
     "abmatt.brres.lib.decoder",
-    "abmatt.brres.lib.node",
     "abmatt.brres.lib.packing.interface",
     "abmatt.brres.lib.packing.pack_brres",
     "abmatt.brres.lib.packing.pack_chr0",
