@@ -124,8 +124,14 @@ class UnpackMaterial(Unpacker):
         #     self.cctevRegs[i].unpack(binfile)
         binfile.advance(24)
         mat.ras1_ss = [bp.unpack_bp(binfile) for i in range(2)]
-        mat.indirect_matrices = [bp.UnpackIndMtx(IndMatrix(), binfile).node for i in range(3)]
-        binfile.advance(9)
+        start = binfile.offset
+        # the block is 54 bytes; with two indirect stages the second matrix starts 22 bytes in, not 15
+        slots = (0, 22, 37) if mat.indirectStages > 1 else (0, 15, 30)
+        mat.indirect_matrices = []
+        for slot in slots:
+            binfile.offset = start + slot
+            mat.indirect_matrices.append(bp.UnpackIndMtx(IndMatrix(), binfile).node)
+        binfile.offset = start + 54
 
 
     def unpack(self, material, binfile):

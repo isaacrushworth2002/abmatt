@@ -143,8 +143,9 @@ class ObjConverter(Converter):
 
 
 class VertexColorImporter(BaseConverter):
-    def __init__(self, brres, mdl_file, polygons, default_color=None, overwrite=False):
+    def __init__(self, brres, mdl_file, polygons, default_color=None, overwrite=False, encode_format=None):
         super().__init__(brres, mdl_file)
+        self.encode_format = encode_format
         self.overwrite = overwrite
         self.default_color = default_color
         self.polygons = polygons
@@ -184,7 +185,7 @@ class VertexColorImporter(BaseConverter):
         return possible[0][0]
 
     @staticmethod
-    def __apply_colors_to_geo(colors, geo, default_color):
+    def __apply_colors_to_geo(colors, geo, default_color, encode_format=None):
         decoded = geo.get_decoded()
         points = np.around(decoded.vertices.points, 3)
         new_colors = {}
@@ -210,7 +211,7 @@ class VertexColorImporter(BaseConverter):
                     new_colors_arr.append(t)
                 fp_row.append(index)
             fp.append(fp_row)
-        decoded.colors = ColorCollection(np.array(new_colors_arr), np.array(fp, np.uint), normalize=True)
+        decoded.colors = ColorCollection(np.array(new_colors_arr), np.array(fp, np.uint), encode_format, normalize=True)
         if failed:
             AutoFix.warn(f'Failed to find vertices and used default color {failed} times.')
         return failed
@@ -250,7 +251,7 @@ class VertexColorImporter(BaseConverter):
                 )
         for x in polygons:
             vertices = geom_vertices[x.name] if x.name in geom_vertices else geom_vertices['']
-            default_color_amount += self.__apply_colors_to_geo(vertices, x, default_color)
+            default_color_amount += self.__apply_colors_to_geo(vertices, x, default_color, self.encode_format)
             x.get_decoded().recode(x)
         AutoFix.info(f'... Finished in {round(time.time() - start, 2)} secs.', 3)
         return default_color_amount

@@ -25,6 +25,14 @@ class Tex0(SubFile):
     def __init__(self, name, parent=None, binfile=None):
         super(Tex0, self).__init__(name, parent, binfile)
 
+    @classmethod
+    def get_converter(cls):
+        """The configured image converter, else the shared ImgConverter"""
+        if cls.converter is None:
+            from abmatt.image_converter import ImgConverter
+            return ImgConverter()
+        return cls.converter
+
     @staticmethod
     def set_max_image_size(size):
         Tex0.MAX_IMG_SIZE = size if Tex0.is_power_of_two(size) else Tex0.lower_power_of_two(size)
