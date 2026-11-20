@@ -121,7 +121,7 @@ class _AutoFix:
         self.queue: list[Message] = []
         self.is_running = False
         self.pipe: MessageReceiver | None = None  # if set, output is sent to the pipe, must implement info warn and error.
-        AutoFix.__AUTO_FIXER = self
+        _AutoFix.__AUTO_FIXER = self  # the name AutoFix is not bound to the instance yet
 
     @staticmethod
     def quit() -> None:

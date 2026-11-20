@@ -1,9 +1,14 @@
 """ MDL0 Models """
 # ----------------- Model sub files --------------------------------------------
+from __future__ import annotations
+
 import math
 import string
+from collections.abc import Iterable, MutableMapping, MutableSequence
+from typing import TYPE_CHECKING, Any
 
 from abmatt.autofix import AutoFix, Bug
+from abmatt.brres.lib.binfile import BinFile
 from abmatt.brres.lib.decoder import decode_mdl0_influences
 from abmatt.brres.lib.matching import fuzzy_match, MATCHING, it_eq
 from abmatt.brres.lib.node import Node, get_name_mapping
@@ -14,11 +19,24 @@ from abmatt.brres.mdl0.definition import get_definition
 from abmatt.brres.mdl0.material.material import Material
 from abmatt.brres.subfile import SubFile
 
+if TYPE_CHECKING:
+    from abmatt.brres.brres import Brres
+    from abmatt.brres.mdl0.color import Color
+    from abmatt.brres.mdl0.normal import Normal
+    from abmatt.brres.mdl0.polygon import Polygon
+    from abmatt.brres.mdl0.texcoord import TexCoord
+    from abmatt.brres.mdl0.vertex import Vertex
+
 
 class ModelGeneric(Node):
     """ A generic model class - most data structures have similar type of header"""
 
-    def unpack(self, binfile):
+    length: int
+    dataPtr: int
+    index: int
+    data: bytes | bytearray
+
+    def unpack(self, binfile: BinFile) -> None:
         """ Unpacks some ptrs but mostly just leaves data as bytes """
         binfile.start()
         self.length, mdl = binfile.read("Ii", 8)
@@ -31,7 +49,7 @@ class ModelGeneric(Node):
         # printCollectionHex(self.data)
         binfile.end()
 
-    def pack(self, binfile):
+    def pack(self, binfile: BinFile) -> None:
         """ Packs into binfile """
         binfile.start()
         binfile.write("Ii", self.length, binfile.getOuterOffset())
@@ -69,70 +87,76 @@ class Mdl0(SubFile):
     REMOVE_UNKNOWN_REFS = True
     REMOVE_UNUSED_REFS = False
 
-    def __init__(self, name, parent, binfile=None):
+    parent: Brres
+    bone_table: list[int]
+
+    def __init__(self, name: str, parent: Brres, binfile: BinFile | None = None) -> None:
         """ initialize model """
-        self.DrawOpa = self.DrawXlu = self.NodeTree = self.NodeMix = None
-        self.weights_by_id = None
+        self.DrawOpa: Any = None
+        self.DrawXlu: Any = None
+        self.NodeTree: Any = None
+        self.NodeMix: Any = None
+        self.weights_by_id: Any = None
         self.rebuild_head = False
         self.bone_matrix_count = 0
-        self.minimum = [0] * 3
-        self.maximum = [0] * 3
-        self.definitions = []
-        self.bones = []
-        self.vertices = []
-        self.normals = []
-        self.colors = []
-        self.uvs = []
+        self.minimum: list[float] = [0] * 3
+        self.maximum: list[float] = [0] * 3
+        self.definitions: list[Any] = []
+        self.bones: list[Bone] = []
+        self.vertices: list[Vertex] = []
+        self.normals: list[Normal] = []
+        self.colors: list[Color] = []
+        self.uvs: list[TexCoord] = []
         self.face_count = 0
         self.facepoint_count = 0
         self.scaling_rule = 0
         self.texture_matrix_mode = 0
         # self.furVectors = []
         # self.furLayers = []
-        self.materials = []
-        self.objects = []
-        self.influences = None
+        self.materials: list[Material] = []
+        self.objects: list[Polygon] = []
+        self.influences: Any = None
         # self.paletteLinks = []
         # self.textureLinks = []
         self.version = 11
         self.is_map_model = True if 'map' in name else False
         super(Mdl0, self).__init__(name, parent, binfile)
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return super().__hash__()
 
-    def __eq__(self, other):
-        return super().__eq__(other) and self.objects == other.objects and self.DrawOpa == other.DrawOpa \
-               and self.DrawXlu == other.DrawXlu and self.NodeTree == other.NodeTree and self.NodeMix == other.NodeMix \
-               and it_eq(self.minimum, other.minimum) and it_eq(self.maximum, other.maximum) \
-               and self.facepoint_count == other.facepoint_count and self.face_count == other.face_count \
-               and self.scaling_rule == other.scaling_rule and self.texture_matrix_mode == other.texture_matrix_mode \
-               and self.bone_table == other.bone_table
+    def __eq__(self, other: Any) -> bool:
+        return bool(super().__eq__(other) and self.objects == other.objects and self.DrawOpa == other.DrawOpa
+                    and self.DrawXlu == other.DrawXlu and self.NodeTree == other.NodeTree and self.NodeMix == other.NodeMix
+                    and it_eq(self.minimum, other.minimum) and it_eq(self.maximum, other.maximum)
+                    and self.facepoint_count == other.facepoint_count and self.face_count == other.face_count
+                    and self.scaling_rule == other.scaling_rule and self.texture_matrix_mode == other.texture_matrix_mode
+                    and self.bone_table == other.bone_table)
 
-    def get_influences(self):
+    def get_influences(self) -> Any:
         if self.influences is None:
             self.influences = decode_mdl0_influences(self)
         return self.influences
 
-    def begin(self):
+    def begin(self) -> None:
         self.bone_table = []
         self.parent.has_new_model = True
         for definition in ('DrawOpa', 'DrawXlu', 'NodeTree', 'NodeMix'):
             self.__setattr__(definition, get_definition(definition, self))
 
-    def mark_unmodified(self):
+    def mark_unmodified(self) -> None:
         self.is_modified = False
         self._mark_unmodified_group(self.materials)
 
-    def set_bonetable(self, bonetable):
+    def set_bonetable(self, bonetable: list[int]) -> None:
         self.bone_table = bonetable
 
-    def search_for_min_and_max(self):
+    def search_for_min_and_max(self) -> None:
         minimum = [math.inf] * 3
         maximum = [-math.inf] * 3
         for vertex in self.vertices:
-            vert_min = vertex.minimum
-            vert_max = vertex.maximum
+            vert_min = vertex.minimum  # type: ignore[attr-defined]
+            vert_max = vertex.maximum  # type: ignore[attr-defined]
             for i in range(3):
                 if vert_min[i] < minimum[i]:
                     minimum[i] = vert_min[i]
@@ -141,17 +165,17 @@ class Mdl0(SubFile):
         self.minimum = minimum
         self.maximum = maximum
         bone = self.bones[0]
-        bone.minimum = [x for x in self.minimum]
-        bone.maximum = [x for x in self.maximum]
+        bone.minimum = [x for x in self.minimum]  # type: ignore[assignment]
+        bone.maximum = [x for x in self.maximum]  # type: ignore[assignment]
 
-    def rebuild_node_tree(self):
-        new_tree = []
+    def rebuild_node_tree(self) -> None:
+        new_tree: list[tuple[int, int]] = []
         for bone in self.bones:
             parent_index = bone.b_parent.weight_id if bone.b_parent else 0
             new_tree.append((bone.index, parent_index))
         self.NodeTree.nodes = new_tree
 
-    def rebuild_header(self):
+    def rebuild_header(self) -> None:
         """After encoding data, calculates the header data"""
         self.bone_matrix_count = len(self.bone_table)
         self.search_for_min_and_max()
@@ -160,44 +184,44 @@ class Mdl0(SubFile):
         self.rebuild_node_tree()
         self.rebuild_head = False
 
-    def rebuild_vertex_refs(self):
+    def rebuild_vertex_refs(self) -> None:
         mapper = get_name_mapping(self.vertices)
         for poly in self.objects:
             poly.vertices = mapper[poly.vertices.name]
 
-    def rebuild_normal_refs(self):
+    def rebuild_normal_refs(self) -> None:
         mapper = get_name_mapping(self.normals)
         for poly in self.objects:
             normals = poly.get_normal_group()
             if normals:
                 poly.normals = mapper[normals.name]
 
-    def rebuild_uv_refs(self):
+    def rebuild_uv_refs(self) -> None:
         mapper = get_name_mapping(self.uvs)
         for poly in self.objects:
             for i in range(poly.count_uvs()):
                 poly.uvs[i] = mapper[poly.get_uv_group(i).name]
 
-    def rebuild_color_refs(self):
+    def rebuild_color_refs(self) -> None:
         mapper = get_name_mapping(self.colors)
         for poly in self.objects:
             colors = poly.get_color_group()
             if colors:
                 poly.colors[0] = mapper[colors.name]
 
-    def get_str(self, key):
+    def get_str(self, key: str) -> str:
         if key == 'name':
             return self.name
         else:
             raise ValueError('Unknown key "{}"'.format(key))
 
-    def set_str(self, key, value):
+    def set_str(self, key: str, value: str) -> None:
         if key == 'name':
             self.rename(value)
         else:
             raise ValueError('Unknown key "{}"'.format(key))
 
-    def update_polygon_material(self, polygon, old_mat, new_mat):
+    def update_polygon_material(self, polygon: Polygon, old_mat: Material | None, new_mat: Material) -> Material:
         # polys = self.get_polys_using_material(old_mat)
         if new_mat.parent is not self:  # is it a material not in the model already?
             test = self.get_material_by_name(new_mat.name)
@@ -223,15 +247,16 @@ class Mdl0(SubFile):
         return new_mat
 
     @staticmethod
-    def __remove_group_item(item, group, if_not_in_group):
+    def __remove_group_item(item: Any, group: MutableSequence[Any], if_not_in_group: Iterable[Any]) -> bool | None:
         if item is not None and item in group:
             for x in if_not_in_group:
                 if x is item:
                     return False
             group.remove(item)
             return True
+        return None
 
-    def remove_vertices(self, polygon):
+    def remove_vertices(self, polygon: Polygon) -> bool | None:
         result = self.__remove_group_item(
             polygon.get_vertex_group(),
             self.vertices,
@@ -242,7 +267,7 @@ class Mdl0(SubFile):
             self.mark_modified()
         return result
 
-    def remove_normals(self, polygon):
+    def remove_normals(self, polygon: Polygon) -> bool | None:
         result = self.__remove_group_item(
             polygon.get_normal_group(),
             self.normals,
@@ -253,7 +278,7 @@ class Mdl0(SubFile):
             self.mark_modified()
         return result
 
-    def remove_colors(self, polygon):
+    def remove_colors(self, polygon: Polygon) -> bool | None:
         result = self.__remove_group_item(
             polygon.get_color_group(),
             self.colors,
@@ -264,18 +289,18 @@ class Mdl0(SubFile):
             self.mark_modified()
         return result
 
-    def remove_uvs(self, polygon, uvs=None):
+    def remove_uvs(self, polygon: Polygon, uvs: list[TexCoord] | None = None) -> bool:
         if not uvs:
             uvs = [polygon.get_uv_group(i) for i in range(polygon.uv_count)]
-        all_used = []
+        all_used: list[TexCoord] = []
         for x in self.objects:
             if x is not polygon:
                 all_used.extend([x.get_uv_group(i) for i in range(x.uv_count)])
         result = True
         removed = False
-        for x in uvs:
+        for uv in uvs:
             if not self.__remove_group_item(
-                x,
+                uv,
                 self.uvs,
                 all_used
             ):
@@ -287,18 +312,19 @@ class Mdl0(SubFile):
             self.rebuild_head = True
         return result
 
-    def remove_polygon(self, polygon):
+    def remove_polygon(self, polygon: Polygon) -> None:
         self.objects.remove(polygon)
         self.rebuild_head = True
-        if len(polygon.material.polygons) == 1:
-            self.remove_material(polygon.material)
+        material = polygon.material
+        if material is not None and len(material.polygons) == 1:
+            self.remove_material(material)
         self.remove_vertices(polygon)
         self.remove_normals(polygon)
         self.remove_colors(polygon)
         self.remove_uvs(polygon)
         self.mark_modified()
 
-    def add_material(self, material):
+    def add_material(self, material: Material) -> Material:
         """
         Adds material to model
         Throws a runtime exception if the material is already in model or if the material is used by another model
@@ -315,19 +341,19 @@ class Mdl0(SubFile):
         self.mark_modified()
         return material
 
-    def remove_material(self, material):
+    def remove_material(self, material: Material) -> None:
         polys = self.get_polys_using_material(material)
         if polys:
             raise RuntimeError('Unable to remove linked material, used by {}'.format(polys))
         self.materials.remove(material)
         self.mark_modified()
 
-    def get_polys_using_material(self, material):
+    def get_polys_using_material(self, material: Material) -> list[Polygon]:
         return [x for x in self.objects if x.get_material() == material]
 
-    def add_bone(self, bone, parent_bone=None, has_geometry=False,
-                 scale_equal=True, fixed_scale=True,
-                 fixed_rotation=True, fixed_translation=True):
+    def add_bone(self, bone: Bone | str, parent_bone: Bone | None = None, has_geometry: bool = False,
+                 scale_equal: bool = True, fixed_scale: bool = True,
+                 fixed_rotation: bool = True, fixed_translation: bool = True) -> Bone:
         if type(bone) is not Bone:
             b = Bone(bone, self, has_geometry=has_geometry,
                      scale_equal=scale_equal, fixed_scale=fixed_scale,
@@ -346,7 +372,8 @@ class Mdl0(SubFile):
         self.bone_matrix_count += 1
         return b
 
-    def add_definition(self, material, polygon, visible_bone=None, priority=0):
+    def add_definition(self, material: Material, polygon: Polygon, visible_bone: Bone | None = None,
+                       priority: int = 0) -> None:
         material.add_poly_ref(polygon)
         polygon.material = material
         polygon.visible_bone = visible_bone
@@ -354,7 +381,7 @@ class Mdl0(SubFile):
         self.rebuild_head = True
 
     # ------------------ Name --------------------------------------
-    def rename(self, name):
+    def rename(self, name: str) -> bool:
         for x in self.parent.models:
             if x is not self and x.name == name:
                 AutoFix.error('Unable to rename {}, the model {} already exists!'.format(self.name, name))
@@ -367,22 +394,23 @@ class Mdl0(SubFile):
         return result
 
     # ------------------------------------ Materials ------------------------------
-    def get_material_by_name(self, name):
+    def get_material_by_name(self, name: str) -> Material | None:
         """Exact naming"""
         for m in self.materials:
             if m.name == name:
                 return m
         return None
 
-    def get_material_by_id(self, id):
+    def get_material_by_id(self, id: int) -> Material | None:
         for x in self.materials:
-            if x.index == id:
+            if x.index == id:  # type: ignore[attr-defined]
                 return x
+        return None
 
-    def get_materials_by_name(self, name):
-        return MATCHING.findAll(name, self.materials)
+    def get_materials_by_name(self, name: str) -> list[Material]:
+        return MATCHING.findAll(name, self.materials)  # type: ignore[no-any-return]
 
-    def add_texture_link(self, name):
+    def add_texture_link(self, name: str) -> None:
         if name != 'Null' and not self.parent.get_texture(name):
             tex = fuzzy_match(name, self.parent.textures)
             notify = 'Adding reference to unknown texture "{}"'.format(name)
@@ -390,7 +418,7 @@ class Mdl0(SubFile):
                 notify += ', did you mean ' + tex.name + '?'
             AutoFix.info(notify, 4)
 
-    def rename_texture_link(self, layer, name):
+    def rename_texture_link(self, layer: Any, name: str) -> str:
         """Attempts to rename a layer, raises value error if the texture can't be found"""
         # No link found, try to find texture matching and create link
         if name != 'Null' and not self.parent.get_texture(name):
@@ -401,10 +429,10 @@ class Mdl0(SubFile):
             AutoFix.info(notify, 4)
         return name
 
-    def get_trace(self):
+    def get_trace(self) -> str:
         return self.parent.get_trace() + "->" + self.name
 
-    def info(self, key=None, indentation_level=0):
+    def info(self, key: str | None = None, indentation_level: int = 0) -> None:
         trace = '  ' * indentation_level + '>' + self.name if indentation_level else self.parent.name + "->" + self.name
         AutoFix.info("{}:\t{} material(s)".format(trace, len(self.materials)), 1)
         indentation_level += 1
@@ -413,16 +441,16 @@ class Mdl0(SubFile):
             x.info(key, indentation_level)
 
     # ---------------------------------------------- CLIPBOARD -------------------------------------------
-    def clip(self, clipboard):
+    def clip(self, clipboard: MutableMapping[str, Any]) -> None:
         clipboard[self.name] = self
 
-    def clip_find(self, clipboard):
+    def clip_find(self, clipboard: MutableMapping[str, Any]) -> Any:
         return clipboard.get(self.name)
 
-    def paste(self, item):
+    def paste(self, item: Mdl0) -> None:
         self.paste_group(self.materials, item.materials)
 
-    def __deepcopy__(self, memodict={}):
+    def __deepcopy__(self, memodict: Any = {}) -> Any:
         raise NotImplementedError()  # hasn't been tested and it seems dangerous
         copy = super().__deepcopy__(memodict)
         sections = [copy.definitions, copy.bones, copy.vertices, copy.normals,
@@ -435,23 +463,23 @@ class Mdl0(SubFile):
                 y.link_parent(copy)
         return copy
 
-    def link_parent(self, parent):
+    def link_parent(self, parent: Brres) -> None:
         super().link_parent(parent)
         for x in self.materials:
             x.on_brres_link(parent)
 
-    def on_material_rename(self, material, new_name):
+    def on_material_rename(self, material: Material, new_name: str) -> str:
         if material.srt0:
             material.srt0.rename(new_name)
         if material.pat0:
             material.pat0.rename(new_name)
         return new_name
 
-    def getTextureMap(self):
+    def getTextureMap(self) -> dict[str, Any]:
         return self.parent.get_texture_map()
 
     # --------------------------------------- Check -----------------------------------
-    def check_group(self, group, used_set, extras=None):
+    def check_group(self, group: MutableSequence[Any], used_set: set[str], extras: Any = None) -> None:
         """
         helper function for check
         :param group, the group to check
@@ -472,7 +500,7 @@ class Mdl0(SubFile):
             for x in to_remove:
                 group.remove(x)
 
-    def check(self, expected_name=None):
+    def check(self, expected_name: str | None = None) -> None:
         """
         Checks model (somewhat) for validity
         """
@@ -494,11 +522,11 @@ class Mdl0(SubFile):
                     b.resolve()
                     self.mark_modified()
         # as we go along, keep track of those references used
-        uvs = set()
-        normals = set()
-        vertices = set()
-        colors = set()
-        materials = set()
+        uvs: set[str] = set()
+        normals: set[str] = set()
+        vertices: set[str] = set()
+        colors: set[str] = set()
+        materials: set[str] = set()
         for x in self.objects:
             if x.check(vertices, normals, uvs, colors, materials):
                 self.mark_modified()
@@ -513,7 +541,7 @@ class Mdl0(SubFile):
             AutoFix.warn('No bones in model, adding bone {}'.format(name))
             self.add_bone(name)
 
-    def add_map_bones(self):
+    def add_map_bones(self) -> None:
         current_names = [bone.name for bone in self.bones]
         parent = self.bones[0]
         minimum = self.minimum
@@ -531,17 +559,17 @@ class Mdl0(SubFile):
             b.set_translation((right, 0, up))
             self.mark_modified()
 
-    def get_used_textures(self):
-        textures = set()
+    def get_used_textures(self) -> set[str]:
+        textures: set[str] = set()
         for x in self.materials:
             textures |= x.get_used_textures()
         return textures
 
     # ---------------START PACKING STUFF -------------------------------------
-    def unpack(self, binfile):
+    def unpack(self, binfile: BinFile) -> None:
         UnpackMdl0(self, binfile)
 
-    def pack(self, binfile):
+    def pack(self, binfile: BinFile) -> None:
         PackMdl0(self, binfile)
 
     # -------------- END PACKING STUFF ---------------------------------------
