@@ -257,8 +257,7 @@ class Brres(Clipable, Packable):
         return None
 
     def get_animations(self) -> list[Any]:
-        # srt0 and pat0 are never assigned on Brres (only unused_srt0 and unused_pat0 are), so this raises
-        return [self.srt0, self.pat0, self.chr0, self.scn0, self.shp0, self.clr0]  # type: ignore[attr-defined]
+        return [self.unused_srt0 or [], self.unused_pat0 or [], self.chr0, self.scn0, self.shp0, self.clr0]
 
     def on_model_rename(self, old_name: str, new_name: str) -> str:
         for n in self.get_animations():
@@ -319,8 +318,9 @@ class Brres(Clipable, Packable):
         return ImgConverter().batch_encode(paths, tex0_format, num_mips, check)
 
     def rename_texture(self, tex0: Tex0, name: str) -> None:
+        old_name = tex0.name
         if tex0.rename(name):
-            self.texture_map[tex0.name] = None  # type: ignore[assignment]
+            self.texture_map.pop(old_name, None)
             self.texture_map[tex0.name] = tex0
 
     def get_texture_map(self) -> dict[str, Tex0]:
@@ -363,11 +363,15 @@ class Brres(Clipable, Packable):
     # --------------------- Animations ----------------------------------------------
 
     def add_srt_collection(self, collection: Any) -> Any:
-        self.srt0.append(collection)  # type: ignore[attr-defined]  # never assigned, see get_animations
+        if self.unused_srt0 is None:
+            self.unused_srt0 = []
+        self.unused_srt0.append(collection)
         return collection
 
     def add_pat0_collection(self, collection: Any) -> Any:
-        self.pat0.append(collection)  # type: ignore[attr-defined]  # never assigned, see get_animations
+        if self.unused_pat0 is None:
+            self.unused_pat0 = []
+        self.unused_pat0.append(collection)
         return collection
 
     # -------------------------------------------------------------------------
