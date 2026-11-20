@@ -56,7 +56,7 @@ class Config:
         n = None
         has_subbed = False
         with open(self.filename) as f:
-            n, has_subbed = re.subn('^(' + key + r'\s*=\s*)[^\n]*', '\g<1>' + value, f.read(), 1, re.MULTILINE)
+            n, has_subbed = re.subn('^(' + key + r'\s*=\s*)[^\n]*', r'\g<1>' + value, f.read(), 1, re.MULTILINE)
         if n:
             if not has_subbed:
                 n += '\n' + key + ' = ' + value
