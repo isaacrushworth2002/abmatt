@@ -156,5 +156,20 @@ class TestIndirectBlock(unittest.TestCase):
             self.unpack(2, AssertionError)
 
 
+class TestUnusedAnimationOrder(unittest.TestCase):
+    def test_unused_animations_keep_file_order(self):
+        from types import SimpleNamespace as NS
+        from abmatt.brres.lib.unpacking.unpack_brres import UnpackBrres
+        names = ['zeta', 'alpha', 'mid', 'beta', 'omega', 'gamma']
+        class Anim(list):
+            name = 'anim'
+
+        anims = [Anim(NS(name=n) for n in names[:3]), Anim(NS(name=n) for n in names[3:])]
+        unpacker = UnpackBrres.__new__(UnpackBrres)
+        unpacker.node = NS(models=[])
+        out = unpacker.post_unpack_anim(anims, 'materials', 'srt0')
+        self.assertEqual(names, [x.name for x in out])
+
+
 if __name__ == '__main__':
     unittest.main()
