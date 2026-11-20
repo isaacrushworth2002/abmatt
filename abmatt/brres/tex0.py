@@ -62,7 +62,7 @@ class Tex0(SubFile):
         elif key == 'mipmapcount':
             return self.set_mipmap_count(validInt(value, 0, 20))
         elif key == 'name':
-            return self.parent.rename_texture(value)
+            return self.parent.rename_texture(self, value)
 
     def set_format(self, fmt):
         if fmt != self.format:

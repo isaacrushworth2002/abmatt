@@ -24,3 +24,12 @@ def test_rename_texture_moves_map_entry():
     brres.add_tex0(tex0)
     brres.rename_texture(tex0, 'new')
     assert brres.texture_map == {'new': tex0}
+
+
+def test_tex0_set_name_renames_through_parent():
+    brres = Brres('synthetic.brres', read_file=False)
+    tex0 = Tex0('old', brres)
+    brres.add_tex0(tex0)
+    tex0.set_str('name', 'new')
+    assert tex0.name == 'new'
+    assert brres.texture_map == {'new': tex0}
