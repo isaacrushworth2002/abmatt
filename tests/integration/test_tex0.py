@@ -1,3 +1,5 @@
+import pytest
+
 import sys
 import unittest
 
@@ -5,6 +7,7 @@ from tests.integration.lib import IntegTest
 
 
 class TestTex0(IntegTest):
+    @pytest.mark.needs_wimgt
     def test_add_tex0(self):
         self.assertTrue(self._abmatt_simple('add tex0:test_files/simple/Wax_02.jpg format:ia8'))
 

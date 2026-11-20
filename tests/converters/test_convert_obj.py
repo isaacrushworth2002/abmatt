@@ -1,3 +1,5 @@
+import pytest
+
 import numpy as np
 
 from abmatt.converters.convert_obj import ObjConverter, UVImporter, VertexColorExporter, VertexColorImporter
@@ -81,6 +83,7 @@ class TestConvertObj(AbmattTest):
                 actual[i]
             ))
 
+    @pytest.mark.needs_wimgt
     def test_import_uvs(self):
         brres = self._get_brres('simple.brres')
         obj = self._get_test_fname('skp_simple_uv.obj')
