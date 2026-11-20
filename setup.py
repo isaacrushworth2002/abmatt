@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 import os
+import re
 
 import setuptools
 from setuptools import setup
-from abmatt import __version__
+
+# read, not imported, so building does not need the package's own dependencies
+with open(os.path.join('abmatt', '__init__.py')) as file:
+    __version__ = re.search(r"__version__ = '([^']+)'", file.read()).group(1)
 
 # reading long description from file
 with open('README.md') as file:
