@@ -14,12 +14,7 @@ from abmatt.brres.mdl0.shader import Shader
 
 
 def get_base_path():
-    path = new_path = os.path.abspath(__file__)
-    fname = None
-    while fname != 'abmatt':
-        path = new_path
-        new_path, fname = os.path.split(path)
-    return path
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
 class AbmattTest(unittest.TestCase):
