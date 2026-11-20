@@ -12,15 +12,24 @@ with open('README.md') as file:
 
 REQUIREMENTS = [
     'fuzzywuzzy',
-    'python-Levenshtein',
     'numpy',
     'pillow',
-    'colorama',
-    'PyQt5',
-    'lxml',
-    'pyqtgraph',
-    'PyOpenGL'
+    'colorama; sys_platform == "win32"',
 ]
+
+EXTRAS = {
+    # fuzzywuzzy falls back to difflib without it, which scores some pairs slightly differently
+    'speed': ['python-Levenshtein'],
+    # COLLADA (.dae) import
+    'dae': ['lxml'],
+    'gui': [
+        'PyQt5',
+        'pyqtgraph',
+        'PyOpenGL',
+        'lxml',
+    ],
+    'dev': ['pytest', 'mypy', 'ruff'],
+}
 
 # some more details
 CLASSIFIERS = [
@@ -58,5 +67,7 @@ setup(name='abmatt',
       data_files=[(data_dir, data_files)],
       classifiers=CLASSIFIERS,
       install_requires=REQUIREMENTS,
+      extras_require=EXTRAS,
+      package_data={'abmatt': ['py.typed']},
       keywords='Mario Kart Wii Brres Material Model'
       )

@@ -4,9 +4,10 @@ import traceback
 from threading import Thread
 from time import sleep
 
-from colorama import init
+if sys.platform == 'win32':
+    from colorama import init
 
-init()
+    init()
 
 
 class bcolors:

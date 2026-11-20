@@ -9,6 +9,11 @@ Or, install as python package:
 pip install git+https://github.com/Robert-N7/abmatt.git
 ```
 
+The core install has no GUI. Extras: `gui` (PyQt5 interface), `dae` (Collada import), `speed` (python-Levenshtein for faster fuzzy matching), `dev` (tests and type checks):
+```
+pip install "abmatt[gui] @ git+https://github.com/Robert-N7/abmatt.git"
+```
+
 ## Dependencies
 ABMatt uses [Wiimm's Image Tool](https://szs.wiimm.de/download.html) which must be installed on your system path.
 

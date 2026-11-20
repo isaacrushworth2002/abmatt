@@ -37,3 +37,6 @@ names.txt
 
 #Images
 *.png
+.venv/
+.mypy_cache/
+.ruff_cache/
