@@ -174,7 +174,7 @@ class Matching:
     REGEX_DISABLED = 0
 
     direct_group_function: Callable[[str, Iterable[Any], list[Any]], list[Any]]
-    regex_group_function: Callable[[str, Iterable[Any], list[Any]], None]
+    regex_group_function: Callable[[str, Iterable[Any], list[Any]], list[Any]]
 
     def __init__(self, case_sensitive: bool = True, partial_matching: int = 2, regex_enable: int = 2) -> None:
         self.case_sensitive = case_sensitive
@@ -185,18 +185,18 @@ class Matching:
     def update(self) -> None:
         if self.partial_matching == 1:
             if self.case_sensitive:
-                self.direct_group_function = self.match_group_partial_insensitive
-                self.regex_group_function = self.regex_group_partial_insensitive
-            else:
                 self.direct_group_function = self.match_group_partial_sensitive
                 self.regex_group_function = self.regex_group_partial_sensitive
+            else:
+                self.direct_group_function = self.match_group_partial_insensitive
+                self.regex_group_function = self.regex_group_partial_insensitive
         else:
             if self.case_sensitive:
                 self.direct_group_function = self.match_group_full_sensitive
                 self.regex_group_function = self.regex_group_full_sensitive
             else:
                 self.direct_group_function = self.match_group_full_insensitive
-                self.regex_group_function = self.regex_group_full_sensitive
+                self.regex_group_function = self.regex_group_full_insensitive
 
     def set_case_sensitive(self, val: str) -> bool:
         try:
@@ -259,7 +259,7 @@ class Matching:
         return results
 
     @staticmethod
-    def regex_group_full_insensitive(name: str, group: Iterable[Any], results: list[Any]) -> None:
+    def regex_group_full_insensitive(name: str, group: Iterable[Any], results: list[Any]) -> list[Any]:
         try:
             regex = re.compile(name, re.IGNORECASE)
             for x in group:
@@ -267,9 +267,10 @@ class Matching:
                     results.append(x)
         except re.error:
             pass
+        return results
 
     @staticmethod
-    def regex_group_full_sensitive(name: str, group: Iterable[Any], results: list[Any]) -> None:
+    def regex_group_full_sensitive(name: str, group: Iterable[Any], results: list[Any]) -> list[Any]:
         try:
             regex = re.compile(name)
             for x in group:
@@ -277,9 +278,10 @@ class Matching:
                     results.append(x)
         except re.error:
             pass
+        return results
 
     @staticmethod
-    def regex_group_partial_insensitive(name: str, group: Iterable[Any], results: list[Any]) -> None:
+    def regex_group_partial_insensitive(name: str, group: Iterable[Any], results: list[Any]) -> list[Any]:
         try:
             regex = re.compile(name, re.IGNORECASE)
             for x in group:
@@ -287,9 +289,10 @@ class Matching:
                     results.append(x)
         except re.error:
             pass
+        return results
 
     @staticmethod
-    def regex_group_partial_sensitive(name: str, group: Iterable[Any], results: list[Any]) -> None:
+    def regex_group_partial_sensitive(name: str, group: Iterable[Any], results: list[Any]) -> list[Any]:
         try:
             regex = re.compile(name)
             for x in group:
@@ -297,6 +300,7 @@ class Matching:
                     results.append(x)
         except re.error:
             pass
+        return results
 
     # finds a name in group, group instances must have .name
     def findAll(self, name: str | None, group: Any) -> Any:
