@@ -87,6 +87,7 @@ class _AutoFix:
 
     # Loudness levels, 0 silent, 1 quiet, 2 mid, 3 loud, 4 max, 5 debug
     LOUD_LEVELS = ('SILENT', 'QUIET', 'MID', 'LOUD', 'MAX', 'DEBUG')
+    FIX_LEVELS = ('NONE', 'ERRORS', 'WARNINGS', 'CHECKS', 'SUGGEST', 'PROMPT')
     ERROR_LEVELS = (bcolors.ENDC, bcolors.FAIL, bcolors.FAIL, bcolors.OKBLUE, bcolors.OKBLUE, bcolors.BOLD)
     RESULTS = ('NONE', 'ERROR', 'WARN', 'CHECK', 'SUCCESS')
 
@@ -130,7 +131,7 @@ class _AutoFix:
             if a.is_running:
                 a.is_running = False
                 a.thread.join()
-                AutoFix.__AUTO_FIXER = None
+                _AutoFix.__AUTO_FIXER = None
 
     def run(self) -> None:
         self.is_running = True
@@ -148,9 +149,9 @@ class _AutoFix:
 
     @staticmethod
     def get(fixe_level: int = 3, loudness: int = 3) -> '_AutoFix':
-        if AutoFix.__AUTO_FIXER is None:
-            AutoFix.__AUTO_FIXER = AutoFix(fixe_level, loudness)  # type: ignore[operator]  # AutoFix is the instance by now
-        return AutoFix.__AUTO_FIXER
+        if _AutoFix.__AUTO_FIXER is None:
+            _AutoFix.__AUTO_FIXER = _AutoFix(fixe_level, loudness)
+        return _AutoFix.__AUTO_FIXER
 
     def set_pipe(self, obj: MessageReceiver | None) -> None:
         self.pipe = obj
@@ -167,8 +168,8 @@ class _AutoFix:
                 fix_level = str(fix_level).upper()
                 if fix_level == 'ALL':
                     self.fix_level = 4
-                elif fix_level in self.ERROR_LEVELS:
-                    self.fix_level = self.ERROR_LEVELS.index(fix_level)
+                elif fix_level in self.FIX_LEVELS:
+                    self.fix_level = self.FIX_LEVELS.index(fix_level)
         if self.fix_level == 0 and self.zero_level_func:
             self.zero_level_func()
 
@@ -221,7 +222,8 @@ class _AutoFix:
     @staticmethod
     def prompt(description: str, proposed_fix: str | None = None) -> int:
         while True:
-            result = input('Fix: ' + description + ',' + proposed_fix + '? (y/n)').lower()  # type: ignore[operator]  # fails when proposed_fix is None
+            fix = ',' + proposed_fix if proposed_fix else ''
+            result = input('Fix: ' + description + fix + '? (y/n)').lower()
             if result[0] == 'y':
                 return 1
             elif result[0] == 'n':
@@ -236,7 +238,7 @@ class _AutoFix:
             if result_message:
                 result_message = '(' + self.RESULTS[result_level] + ') ' + result_message
             else:
-                result_message = '(' + self.RESULTS[result_level] + ') ' + bug.fix_des  # type: ignore[operator]  # fails when fix_des is None
+                result_message = '(' + self.RESULTS[result_level] + ') ' + (bug.fix_des or bug.description)
             self.info(result_message, 0)
 
     def notify(self, bug: Bug) -> None:
