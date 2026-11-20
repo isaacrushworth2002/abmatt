@@ -1,5 +1,7 @@
 """The mypy baseline only shrinks: type a module, then delete it from pyproject.toml."""
 import importlib.util
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
@@ -41,6 +43,6 @@ def test_py_typed_ships():
 
 
 def test_mypy_clean():
-    api = pytest.importorskip('mypy.api')
-    out, err, status = api.run(['--config-file', str(ROOT / 'pyproject.toml')])
-    assert status == 0, out
+    pytest.importorskip('mypy')
+    result = subprocess.run([sys.executable, '-m', 'mypy'], cwd=ROOT, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout + result.stderr
