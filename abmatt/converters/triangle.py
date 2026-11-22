@@ -68,7 +68,7 @@ class TriangleSet:
     max_infs = 10
 
     def __init__(self, np_tris, has_infs=False):
-        Triangle.edge_map = {}  # reset
+        edge_map = {}
         tris = []
         self.has_infs = has_infs
         for tri in np_tris:
@@ -76,7 +76,7 @@ class TriangleSet:
             tri_set = {x for x in verts}
             if len(tri_set) < 3:  # not a tri
                 continue
-            tris.append(Triangle(verts))
+            tris.append(Triangle(verts, edge_map))
         self.triangles = tris
 
     def __bool__(self):
@@ -138,8 +138,6 @@ class TriangleSet:
 
 
 class Triangle:
-    edge_map = {}
-
     class Edge:
         def __str__(self):
             return str(self.verts)
@@ -181,7 +179,8 @@ class Triangle:
     def __next__(self):
         return next(self.vertices)
 
-    def __init__(self, vertices):
+    def __init__(self, vertices, edge_map):
+        self.edge_map = edge_map  # shared by the triangles of one TriangleSet
         self.vertices = vertices
         self.is_used = False  # is it in a tri strip?
         self.edges = [self.get_edge((vertices[0], vertices[1])),
