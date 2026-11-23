@@ -70,7 +70,7 @@ class Message:
         raise NotImplementedError()
 
 
-class AutoFix:
+class _AutoFix:
     # Fix Level
     # None 0
     # Errors 1
@@ -83,6 +83,7 @@ class AutoFix:
 
     # Loudness levels, 0 silent, 1 quiet, 2 mid, 3 loud, 4 max, 5 debug
     LOUD_LEVELS = ('SILENT', 'QUIET', 'MID', 'LOUD', 'MAX', 'DEBUG')
+    FIX_LEVELS = ('NONE', 'ERRORS', 'WARNINGS', 'CHECKS', 'SUGGEST', 'PROMPT')
     ERROR_LEVELS = (bcolors.ENDC, bcolors.FAIL, bcolors.FAIL, bcolors.OKBLUE, bcolors.OKBLUE, bcolors.BOLD)
     RESULTS = ('NONE', 'ERROR', 'WARN', 'CHECK', 'SUCCESS')
 
@@ -115,16 +116,16 @@ class AutoFix:
         self.queue = []
         self.is_running = False
         self.pipe = None  # if set, output is sent to the pipe, must implement info warn and error.
-        AutoFix.__AUTO_FIXER = self
+        _AutoFix.__AUTO_FIXER = self
 
     @staticmethod
     def quit():
-        a = AutoFix.__AUTO_FIXER
+        a = _AutoFix.__AUTO_FIXER
         if a is not None:
             if a.is_running:
                 a.is_running = False
                 a.thread.join()
-                AutoFix.__AUTO_FIXER = None
+                _AutoFix.__AUTO_FIXER = None
 
     def run(self):
         self.is_running = True
@@ -142,9 +143,9 @@ class AutoFix:
 
     @staticmethod
     def get(fixe_level=3, loudness=3):
-        if AutoFix.__AUTO_FIXER is None:
-            AutoFix.__AUTO_FIXER = AutoFix(fixe_level, loudness)
-        return AutoFix.__AUTO_FIXER
+        if _AutoFix.__AUTO_FIXER is None:
+            _AutoFix.__AUTO_FIXER = _AutoFix(fixe_level, loudness)
+        return _AutoFix.__AUTO_FIXER
 
     def set_pipe(self, obj):
         self.pipe = obj
@@ -161,8 +162,8 @@ class AutoFix:
                 fix_level = fix_level.upper()
                 if fix_level == 'ALL':
                     self.fix_level = 4
-                elif fix_level in self.ERROR_LEVELS:
-                    self.fix_level = self.ERROR_LEVELS.index(fix_level)
+                elif fix_level in self.FIX_LEVELS:
+                    self.fix_level = self.FIX_LEVELS.index(fix_level)
         if self.fix_level == 0 and self.zero_level_func:
             self.zero_level_func()
 
@@ -215,12 +216,13 @@ class AutoFix:
     @staticmethod
     def prompt(description, proposed_fix=None):
         while True:
-            result = input('Fix: ' + description + ',' + proposed_fix + '? (y/n)').lower()
-            if result[0] == 'y':
+            fix = ',' + proposed_fix if proposed_fix else ''
+            result = input('Fix: ' + description + fix + '? (y/n)').lower()[:1]
+            if result == 'y':
                 return 1
-            elif result[0] == 'n':
+            elif result == 'n':
                 return 0
-            elif result[0] == 'a':  # abort option
+            elif result == 'a':  # abort option
                 raise AutoFixAbort()
             else:
                 print('Invalid response, expects yes, no, or abort.')
@@ -230,7 +232,7 @@ class AutoFix:
             if result_message:
                 result_message = '(' + self.RESULTS[result_level] + ') ' + result_message
             else:
-                result_message = '(' + self.RESULTS[result_level] + ') ' + bug.fix_des
+                result_message = '(' + self.RESULTS[result_level] + ') ' + (bug.fix_des or bug.description)
             self.info(result_message, 0)
 
     def notify(self, bug):
@@ -255,4 +257,4 @@ class AutoFix:
         self.loudness = self.get_level(level_str)
 
 
-AutoFix = AutoFix()
+AutoFix = _AutoFix()

@@ -83,7 +83,7 @@ class ObjGeometry():
         #             minimum = ele
         #         if ele > maximum:
         #             maximum = ele
-        ret = np.array(data[minimum:maximum + 1], np.float)
+        ret = np.array(data[minimum:maximum + 1], float)
         return PointCollection(ret, indices - minimum)
 
     def normalize(self, vertices, normals, tex_coords):

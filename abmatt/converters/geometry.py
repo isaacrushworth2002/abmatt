@@ -101,7 +101,7 @@ class Geometry:
         p.after_recode()
         return p
 
-    def __encode(self, polygon):
+    def __encode(self, polygon, vertex_colors=None):
         mdl = polygon.parent
         self.fmt_str = '>'
         if self.__encode_influences(polygon, self.influences, polygon.visible_bone):
@@ -126,7 +126,9 @@ class Geometry:
         polygon.data = data
         polygon.encode_str = self.fmt_str
         material = mdl.get_material_by_name(self.material_name)
-        if self.colors and self.ENABLE_VERTEX_COLORS:
+        if vertex_colors is None:
+            vertex_colors = self.ENABLE_VERTEX_COLORS
+        if self.colors and vertex_colors:
             if material.enable_vertex_color():
                 AutoFix.info('{} has colors, enabled vertex color in light channel.'.format(self.name))
         self.encoded = polygon
@@ -134,7 +136,8 @@ class Geometry:
 
     def encode(self, mdl, visible_bone=None, encoder=None,
                use_default_colors_if_none_found=True,
-               priority=None, has_uv_mtx=None):
+               priority=None, has_uv_mtx=None, vertex_colors=None):
+        """vertex_colors: enable vertex color in the material's light channel, default ENABLE_VERTEX_COLORS"""
         if priority is not None:
             self.priority = priority
         if has_uv_mtx is not None:
@@ -148,7 +151,7 @@ class Geometry:
         if encoder is not None:
             self.encoder = encoder
             encoder.before_encode(self)
-        self.__encode(p)
+        self.__encode(p, vertex_colors)
         mdl.objects.append(p)
         material = mdl.get_material_by_name(self.material_name)
         mdl.add_definition(material, p, visible_bone, self.priority)

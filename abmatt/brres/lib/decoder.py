@@ -11,11 +11,11 @@ from abmatt.converters.points import PointCollection
 
 
 def decode_geometry_group(geometry, n_columns, flip_points=False):
-    arr = np.array(geometry.data, np.float)
+    arr = np.array(geometry.data, float)
     if geometry.divisor:
         arr = arr / (2 ** geometry.divisor)
     if arr.shape[1] < n_columns:
-        arr = np.append(arr, np.zeros((arr.shape[0], 1), np.float), axis=1)
+        arr = np.append(arr, np.zeros((arr.shape[0], 1), float), axis=1)
     if flip_points:
         arr[:, -1] = arr[:, -1] * -1 + 1    # convert st to xy
     return arr
@@ -201,6 +201,21 @@ def decode_tris(decoder, decoder_byte_len, data, start_offset, num_facepoints, f
     return start_offset
 
 
+def decode_quads(decoder, decoder_byte_len, data, start_offset, num_facepoints, face_point_indices):
+    points = [unpack_from(decoder, data, start_offset + i * decoder_byte_len) for i in range(num_facepoints)]
+    for i in range(0, num_facepoints - 3, 4):
+        face_point_indices.append([points[i], points[i + 1], points[i + 2]])
+        face_point_indices.append([points[i], points[i + 2], points[i + 3]])
+    return start_offset + num_facepoints * decoder_byte_len
+
+
+def decode_tri_fan(decoder, decoder_byte_len, data, start_offset, num_facepoints, face_point_indices):
+    points = [unpack_from(decoder, data, start_offset + i * decoder_byte_len) for i in range(num_facepoints)]
+    for i in range(1, num_facepoints - 1):
+        face_point_indices.append([points[0], points[i], points[i + 1]])
+    return start_offset + num_facepoints * decoder_byte_len
+
+
 def decode_indices(polygon, fmt_str):
     """Given a polygon and decoder string, decode the facepoint indices
         :return (face_point_indices, weight_groups)
@@ -217,13 +232,19 @@ def decode_indices(polygon, fmt_str):
     while total_face_points < face_point_count:
         [cmd] = unpack_from('>B', data, i)
         i += 1
-        if cmd in (0x98, 0x90):
+        if cmd in (0x98, 0x90, 0x80, 0xa0, 0xa8, 0xb0, 0xb8):
             [num_facepoints] = unpack_from('>H', data, i)
             i += 2
             if cmd == 0x98:
                 i = decode_tri_strip(fmt_str, stride, data, i, num_facepoints, face_point_indices)
             elif cmd == 0x90:
                 i = decode_tris(fmt_str, stride, data, i, num_facepoints, face_point_indices)
+            elif cmd == 0x80:
+                i = decode_quads(fmt_str, stride, data, i, num_facepoints, face_point_indices)
+            elif cmd == 0xa0:
+                i = decode_tri_fan(fmt_str, stride, data, i, num_facepoints, face_point_indices)
+            else:  # lines and points have no faces
+                i += num_facepoints * stride
             total_face_points += num_facepoints
             new_weight_group = True
         elif cmd in (0x20, 0x28, 0x30):  # load matrix

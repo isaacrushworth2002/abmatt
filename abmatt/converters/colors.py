@@ -127,7 +127,7 @@ class ColorCollection:
 
     def denormalize(self):
         """Opposite of normalize. returns ndarray converted from 0-255 to 0-1"""
-        return self.rgba_colors.astype(np.float) / 255
+        return self.rgba_colors.astype(float) / 255
 
     def combine(self, color, combine_geometry=False):
         if color.combined_into:

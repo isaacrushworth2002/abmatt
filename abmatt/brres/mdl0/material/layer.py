@@ -30,8 +30,8 @@ class Layer(Clipable):
                    "texcoord0", "texcoord1", "texcoord2", "texcoord3", "texcoord4", "texcoord5", "texcoord6",
                    "texcoord7")
     MINFILTER_AUTO = False
-    RENAME_UNKNOWN_REFS = True
-    REMOVE_UNKNOWN_REFS = True
+    RENAME_UNKNOWN_REFS = False
+    REMOVE_UNKNOWN_REFS = False
 
     def __init__(self, name, parent, binfile=None):
         """ Initializes, name, and parent material """

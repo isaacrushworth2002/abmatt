@@ -245,7 +245,7 @@ class Brres(Clipable, Packable):
                 return item
 
     def get_animations(self):
-        return [self.srt0, self.pat0, self.chr0, self.scn0, self.shp0, self.clr0]
+        return [self.unused_srt0 or [], self.unused_pat0 or [], self.chr0, self.scn0, self.shp0, self.clr0]
 
     def on_model_rename(self, old_name, new_name):
         for n in self.get_animations():
@@ -304,8 +304,9 @@ class Brres(Clipable, Packable):
         return ImgConverter().batch_encode(paths, tex0_format, num_mips, check)
 
     def rename_texture(self, tex0, name):
+        old_name = tex0.name
         if tex0.rename(name):
-            self.texture_map[tex0.name] = None
+            self.texture_map.pop(old_name, None)
             self.texture_map[tex0.name] = tex0
 
     def get_texture_map(self):
@@ -348,11 +349,15 @@ class Brres(Clipable, Packable):
     # --------------------- Animations ----------------------------------------------
 
     def add_srt_collection(self, collection):
-        self.srt0.append(collection)
+        if self.unused_srt0 is None:
+            self.unused_srt0 = []
+        self.unused_srt0.append(collection)
         return collection
 
     def add_pat0_collection(self, collection):
-        self.pat0.append(collection)
+        if self.unused_pat0 is None:
+            self.unused_pat0 = []
+        self.unused_pat0.append(collection)
         return collection
 
     # -------------------------------------------------------------------------

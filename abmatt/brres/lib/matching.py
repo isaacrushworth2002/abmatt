@@ -164,18 +164,18 @@ class Matching:
     def update(self):
         if self.partial_matching == 1:
             if self.case_sensitive:
-                self.direct_group_function = self.match_group_partial_insensitive
-                self.regex_group_function = self.regex_group_partial_insensitive
-            else:
                 self.direct_group_function = self.match_group_partial_sensitive
                 self.regex_group_function = self.regex_group_partial_sensitive
+            else:
+                self.direct_group_function = self.match_group_partial_insensitive
+                self.regex_group_function = self.regex_group_partial_insensitive
         else:
             if self.case_sensitive:
                 self.direct_group_function = self.match_group_full_sensitive
                 self.regex_group_function = self.regex_group_full_sensitive
             else:
                 self.direct_group_function = self.match_group_full_insensitive
-                self.regex_group_function = self.regex_group_full_sensitive
+                self.regex_group_function = self.regex_group_full_insensitive
 
     def set_case_sensitive(self, val):
         try:
@@ -247,6 +247,7 @@ class Matching:
                     results.append(x)
         except re.error:
             pass
+        return results
 
     @staticmethod
     def regex_group_full_sensitive(name, group, results):
@@ -257,6 +258,7 @@ class Matching:
                     results.append(x)
         except re.error:
             pass
+        return results
 
     @staticmethod
     def regex_group_partial_insensitive(name, group, results):
@@ -267,6 +269,7 @@ class Matching:
                     results.append(x)
         except re.error:
             pass
+        return results
 
     @staticmethod
     def regex_group_partial_sensitive(name, group, results):
@@ -277,6 +280,7 @@ class Matching:
                     results.append(x)
         except re.error:
             pass
+        return results
 
     # finds a name in group, group instances must have .name
     def findAll(self, name, group):

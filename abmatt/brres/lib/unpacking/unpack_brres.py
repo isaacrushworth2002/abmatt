@@ -39,7 +39,7 @@ class UnpackBrres(Unpacker):
                 else:
                     anim_map[x.name].append(x)
                 x.parent_base_name = base_name
-        unused = set(anim_map.keys())
+        unused = dict.fromkeys(anim_map)  # not a set: the unused animations must pack in file order
         for model in self.node.models:
             for item in getattr(model, model_attr):
                 anims = anim_map.get(item.name)
@@ -48,14 +48,11 @@ class UnpackBrres(Unpacker):
                         for x in anims:
                             if x.parent_base_name == model.name:
                                 setattr(item, item_attr, x)
-                                if item.name in unused: unused.remove(item.name)
+                                unused.pop(item.name, None)
                                 break
                     else:
                         setattr(item, item_attr, anims[0])
-                        try:
-                            unused.remove(item.name)
-                        except KeyError:
-                            pass
+                        unused.pop(item.name, None)
         return [y for x in unused for y in anim_map[x]]
 
     def post_unpacking(self, brres):

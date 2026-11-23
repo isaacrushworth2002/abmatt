@@ -25,6 +25,14 @@ class Tex0(SubFile):
     def __init__(self, name, parent=None, binfile=None):
         super(Tex0, self).__init__(name, parent, binfile)
 
+    @classmethod
+    def get_converter(cls):
+        """The configured image converter, else the shared ImgConverter"""
+        if cls.converter is None:
+            from abmatt.image_converter import ImgConverter
+            return ImgConverter()
+        return cls.converter
+
     @staticmethod
     def set_max_image_size(size):
         Tex0.MAX_IMG_SIZE = size if Tex0.is_power_of_two(size) else Tex0.lower_power_of_two(size)
@@ -62,7 +70,7 @@ class Tex0(SubFile):
         elif key == 'mipmapcount':
             return self.set_mipmap_count(validInt(value, 0, 20))
         elif key == 'name':
-            return self.parent.rename_texture(value)
+            return self.parent.rename_texture(self, value)
 
     def set_format(self, fmt):
         if fmt != self.format:
